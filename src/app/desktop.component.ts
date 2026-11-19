@@ -59,8 +59,8 @@ import { SignatureInputComponent } from './signature-input.component';
     .qr small { word-break: break-all; color: #666; }
     .ipsel { display: block; margin: 6px 0; font-size: 13px; } .ipsel select { margin-left: 6px; }
     .status { font-weight: 600; }
-    .stage.readonly { height: 220px; border: 1.5px solid #c9cdd6; border-radius: 8px; background: #fff; display: grid; place-items: center; }
-    .stage.readonly img { max-width: 100%; max-height: 100%; pointer-events: none; user-select: none; }
+       .stage.readonly { position: relative; height: 220px; border: 1.5px solid #c9cdd6; border-radius: 8px; background: #fff; overflow: hidden; }
+    .stage.readonly img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 12px; box-sizing: border-box; pointer-events: none; user-select: none; }
     .actions { margin: 10px 0; }
     .actions button { font: inherit; padding: 10px 16px; border-radius: 6px; border: 1px solid #c9cdd6; background: #fff; cursor: pointer; }
     .dl { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
