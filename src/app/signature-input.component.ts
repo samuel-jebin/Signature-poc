@@ -41,7 +41,7 @@ import { cleanupSignature } from './image-cleanup';
       <button (click)="clear()">Clear</button>
     </div>
 
-    @if (preview()) {
+        @if (preview() && mode() === 'upload') {
       <p class="label">Preview</p>
       <div class="paper"><img [src]="preview()!" alt="Your signature" /></div>
     }

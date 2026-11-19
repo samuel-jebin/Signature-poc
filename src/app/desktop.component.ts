@@ -11,7 +11,15 @@ import { SignatureInputComponent } from './signature-input.component';
   template: `
     <main>
       <h1>Your signature</h1>
-      <app-signature-input (signatureChange)="onLocal($event)" />
+
+      @if (source() === 'mobile' && final()) {
+        <div class="stage readonly">
+          <img [src]="final()!" alt="Signature from phone" />
+        </div>
+        <div class="actions"><button (click)="resetMobile()">Clear</button></div>
+      } @else {
+        <app-signature-input (signatureChange)="onLocal($event)" />
+      }
 
       <p class="qr-link">
         Prefer your phone?
@@ -23,9 +31,7 @@ import { SignatureInputComponent } from './signature-input.component';
           <img [src]="qr()!" alt="QR code to sign on your phone" width="200" height="200" />
           <div>
             <p>Scan with your phone camera.</p>
-            <p class="status" [class.ok]="status() === 'signed'">
-              {{ status() === 'signed' ? 'Signature received' : 'Waiting for your phone…' }}
-            </p>
+            <p class="status">Waiting for your phone…</p>
             @if (ips().length > 1) {
               <label class="ipsel">Network
                 <select (change)="onIp($event)">
@@ -39,12 +45,10 @@ import { SignatureInputComponent } from './signature-input.component';
       }
 
       @if (final()) {
-        <h2>Captured signature {{ source() === 'mobile' ? '(from phone)' : '' }}</h2>
-        <div class="paper"><img [src]="final()!" alt="Final signature" /></div>
         <div class="dl">
-  <button (click)="downloadTransparent()">Download PNG (transparent)</button>
-  <button (click)="downloadWhite()">Download with white background</button>
-</div>
+          <button (click)="downloadTransparent()">Download PNG (transparent)</button>
+          <button (click)="downloadWhite()">Download with white background</button>
+        </div>
       }
     </main>
   `,
@@ -54,11 +58,13 @@ import { SignatureInputComponent } from './signature-input.component';
     .qr { display: flex; gap: 16px; align-items: center; border: 1px solid #c9cdd6; border-radius: 8px; padding: 16px; }
     .qr small { word-break: break-all; color: #666; }
     .ipsel { display: block; margin: 6px 0; font-size: 13px; } .ipsel select { margin-left: 6px; }
-    .status { font-weight: 600; } .status.ok { color: #1a7f37; }
-    .paper { border: 1px solid #c9cdd6; border-radius: 8px; padding: 12px; text-align: center; background: #fff; }
-    .paper img { max-width: 100%; max-height: 160px; }
+    .status { font-weight: 600; }
+    .stage.readonly { height: 220px; border: 1.5px solid #c9cdd6; border-radius: 8px; background: #fff; display: grid; place-items: center; }
+    .stage.readonly img { max-width: 100%; max-height: 100%; pointer-events: none; user-select: none; }
+    .actions { margin: 10px 0; }
+    .actions button { font: inherit; padding: 10px 16px; border-radius: 6px; border: 1px solid #c9cdd6; background: #fff; cursor: pointer; }
     .dl { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.dl button { font: inherit; padding: 10px 16px; border-radius: 6px; border: 1px solid #c9cdd6; background: #fff; cursor: pointer; }
+    .dl button { font: inherit; padding: 10px 16px; border-radius: 6px; border: 1px solid #c9cdd6; background: #fff; cursor: pointer; }
   `],
 })
 export class DesktopComponent implements OnDestroy {
@@ -70,7 +76,6 @@ export class DesktopComponent implements OnDestroy {
   url = signal('');
   ips = signal<string[]>([]);
   selectedIp = signal<string | null>(null);
-  status = signal<'pending' | 'signed'>('pending');
   final = signal<string | null>(null);
   source = signal<'local' | 'mobile'>('local');
 
@@ -79,9 +84,14 @@ export class DesktopComponent implements OnDestroy {
     this.final.set(png);
   }
 
+  /** Clears the received signature; the QR code stays active for the next scan. */
+  resetMobile() {
+    this.source.set('local');
+    this.final.set(null);
+  }
+
   async startQr() {
     this.sub?.unsubscribe();
-    this.status.set('pending');
     const { id } = await firstValueFrom(this.api.createRequest());
     this.reqId = id;
 
@@ -97,10 +107,11 @@ export class DesktopComponent implements OnDestroy {
     await this.buildQr();
 
     this.sub = this.api.watch(id).subscribe((r) => {
-      this.status.set(r.status);
       if (r.status === 'signed' && r.signature) {
         this.source.set('mobile');
         this.final.set(r.signature);
+        // Generate a fresh QR code for the next upload
+        setTimeout(() => this.startQr());
       }
     });
   }
@@ -119,31 +130,32 @@ export class DesktopComponent implements OnDestroy {
   }
 
   downloadTransparent() {
-  const png = this.final();
-  if (png) this.save(png, 'signature-transparent.png');
-}
+    const png = this.final();
+    if (png) this.save(png, 'signature-transparent.png');
+  }
 
-async downloadWhite() {
-  const png = this.final();
-  if (!png) return;
-  const img = new Image();
-  img.src = png;
-  await img.decode();
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth;
-  c.height = img.naturalHeight;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(img, 0, 0);
-  this.save(c.toDataURL('image/png'), 'signature-white.png');
-}
+  async downloadWhite() {
+    const png = this.final();
+    if (!png) return;
+    const img = new Image();
+    img.src = png;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0);
+    this.save(c.toDataURL('image/png'), 'signature-white.png');
+  }
 
-private save(href: string, name: string) {
-  const a = document.createElement('a');
-  a.href = href;
-  a.download = name;
-  a.click();
-}
+  private save(href: string, name: string) {
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = name;
+    a.click();
+  }
+
   ngOnDestroy() { this.sub?.unsubscribe(); }
 }
