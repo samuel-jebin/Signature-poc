@@ -51,12 +51,12 @@ import { cleanupSignature } from './image-cleanup';
     .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .tabs button { flex: 1; padding: 10px; border: 1px solid #c9cdd6; background: #fff; border-radius: 6px; font: inherit; }
     .tabs button[aria-selected=true] { background: #0a1f44; color: #fff; border-color: #0a1f44; }
-    .stage { position: relative; height: 220px; border: 1.5px dashed #8a93a6; border-radius: 8px; background: #fff; }
+        .stage { position: relative; height: 220px; border: 1.5px dashed #8a93a6; border-radius: 8px; background: #fff; overflow: hidden; }
     .stage.upload { display: grid; place-items: center; text-align: center; }
     .pick { display: grid; gap: 8px; justify-items: center; padding: 0 12px; }
     .pick small { color: #666; }
-    canvas { width: 100%; height: 100%; display: block; touch-action: none; }
     .hint { position: absolute; left: 12px; bottom: 8px; font-size: 12px; color: #8a93a6; pointer-events: none; }
+        canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
     .tune { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: #555; }
     .tune input { flex: 1; }
     .actions { display: flex; gap: 8px; margin: 10px 0; }
